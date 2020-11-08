@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Realtime chart</title>
+  <style>
+    svg {
+      font: 10px sans-serif;
+    }
+
+    .line {
+      fill: none;
+      stroke: rgb(36, 123, 145);
+      stroke-width: 0.5px;
+    }
+
+    .line2 {
+      fill: none;
+      stroke: rgb(87, 16, 16);
+      stroke-width: 0.5px;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div style="height: 90px"></div>
+
+  <div class="btn-group" role="group" style="padding-left: 15px">
+    <button class="button" id="changeButton">start</button>
+  </div>
+
+  <div class="container-fluid">
+    <div class="row">
+
+      <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function () {
+          var sock = io.connect('http://127.0.0.1:80');
+
+          sock.on('draw', function (data) {
+            if (document.getElementById("changeButton").innerText == 'start') return;
+            tick(data['latency']);
+          });
+
+          document.getElementById("changeButton").onclick = function () { myFunction() };
+          function myFunction() {
+            if (document.getElementById("changeButton").innerText == 'start') {
+              document.getElementById("changeButton").innerText = 'stop';
+              sock.emit('mode-change', { 'mode': 'start' });
+            } else {
+              document.getElementById("changeButton").innerText = 'start';
+              sock.emit('mode-change', { 'mode': 'stop' });
+            }
+          }
+        });
+
+      </script>
+    </div>
+  </div>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
+  <script type="text/javascript" src='https://d3js.org/d3.v3.min.js'></script>
+  <script>
+    var n = 400,
+      random = d3.random.normal(0, 0),
+      data = d3.range(n).map(random);
+
+    var margin = { top: 20, right: 20, bottom: 20, left: 40 },
+      width = 960 - margin.left - margin.right,
+      height = 400 - margin.top - margin.bottom;
+
+    var x = d3.scale.linear()
+      .domain([0, n - 1])
+      .range([0, width]);
+
+    var y = d3.scale.linear()
+      .domain([-1, 100])
+      .range([height, 0]);
+
+    var line = d3.svg.line()
+      .x(function (d, i) { return x(i); })
+      .y(function (d, i) { return y(d); });
+
+    var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    svg.append("defs").append("clipPath")
+      .attr("id", "clip")
+      .append("rect")
+      .attr("width", width)
+      .attr("height", height);
+
+    svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + y(0) + ")")
+      .call(d3.svg.axis().scale(x).orient("bottom"));
+
+    svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.svg.axis().scale(y).orient("left"));
+
+    var path = svg.append("g")
+      .attr("clip-path", "url(#clip)")
+      .append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
+
+    function tick(d) {
+      data.push(d);
+      path
+        .attr("d", line)
+        .attr("transform", null)
+        .transition()
+        .duration(500)
+        .ease("linear")
+        .attr("transform", "translate(" + x(-1) + ",0)")
+
+      data.shift();
+
+    }
+  </script>
+</body>
+
+</html>
